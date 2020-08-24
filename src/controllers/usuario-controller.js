@@ -17,6 +17,60 @@ exports.get = async (req, res, next) => {
   }
 }
 
+exports.consulta = async (req, res, next) => {
+  try {
+    const usuario = await repository.getById(req.query.id)
+
+    if (!usuario) {
+      const response = {
+        message: 'Usuario não encontrado.',
+      }
+      res.status(400).send(response)
+      return next(response)
+    }
+
+    const { nossoNumero, dataInicio, dataFim, tipoData } = req.query
+
+    const filtros = {
+      chaveTransacao: usuario.chaveTransacao,
+      agencia: usuario.agencia,
+      cedente: usuario.cedente,
+      posto: usuario.posto,
+      nossoNumero: nossoNumero,
+      dataInicio: dataInicio,
+      dataFim: dataFim,
+      tipoData: tipoData,
+    }
+
+    const find = await sicredi.consulta(filtros)
+
+    if (find.status / 100 > 2) {
+      const { data } = find
+      const response = {
+        message: `${data.codigo} - ${data.mensagem}`,
+      }
+      res.status(400).send(response)
+      return next(response)
+    }
+
+    const { data } = find
+
+    const retorno = {
+      ...data,
+    }
+
+    res.status(200).send(retorno)
+    return next(retorno)
+  } catch (erro) {
+    const response = {
+      message: 'Falha ao processar sua requisição.',
+      erro,
+    }
+    res.status(500).send(response)
+    return next(erro)
+  }
+}
+
 exports.post = async (req, res, next) => {
   try {
     const { nome, chaveTransacao, dataExpiracao } = req.body
@@ -54,18 +108,21 @@ exports.autenticacao = async (req, res, next) => {
 
     const auth = await sicredi.autenticacao(usuario.tokenMaster)
 
-    if (!'chaveTransacao' in auth) {
+    if (auth.status / 100 > 2) {
+      const { data } = auth
       const response = {
-        message: 'Falha em gerar Chave de Transação.',
+        message: `${data.codigo} - ${data.mensagem}`,
       }
       res.status(400).send(response)
       return next(response)
     }
 
+    const { chaveTransacao, dataExpiracao } = auth.data
+
     const data = {
       id: usuario._id,
-      chaveTransacao: auth.chaveTransacao,
-      dataExpiracao: auth.dataExpiracao,
+      chaveTransacao: chaveTransacao,
+      dataExpiracao: dataExpiracao,
     }
 
     const retorno = await repository.update(data)
