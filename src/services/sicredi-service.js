@@ -9,10 +9,14 @@ moment.locale('pt-br')
 const os = require('os')
 const networkInterfaces = os.networkInterfaces()
 
-// const URL =
-//   'https://cobrancaonline.sicredi.com.br/sicredi-cobranca-ws-ecomm-api/ecomm/v1/boleto'
+const URL =
+  'https://cobrancaonline.sicredi.com.br/sicredi-cobranca-ws-ecomm-api/ecomm/v1/boleto'
 
-const URL = `http://${networkInterfaces.Ethernet[1].address}:3001/sicredi`
+/**
+ * Rota de teste para simular retornos da API da Sicredi,
+ * já que eles não fornecem um ambiente para testes.
+ */
+// const URL = `http://${networkInterfaces.Ethernet[1].address}:3001/sicredi`
 
 const PATHS = {
   AUTH: '/autenticacao',
@@ -23,6 +27,13 @@ const PATHS = {
   PRINT: '/impressao',
 }
 
+/**
+ * Como a API da Sicredi atualmente ainda não possui uma rota de notificação
+ * quando a situação do boleto é alterada, a ideia seria criar uma rotina,
+ * que iria buscar todos os dias os boletos que ainda não foram liquidados,
+ * e verificando se a situação dos mesmos foi alterada, atualizando os dados
+ * deles no sistema.
+ */
 exports.schedule = () => {
   const job = new CronJob(
     '* * * * *',
@@ -334,7 +345,7 @@ exports.emissao = async (emissao) => {
     const codigoMensagem = emissao.codigoMensagem
     const numDiasNegativacaoAuto = emissao.numDiasNegativacaoAuto
 
-    //CAMPOS OPCIONAIS, SE UM CAMPO ESPECIFICO NÃO FOR INFORMADO
+    //CAMPOS OBRIGATÓRIOS, SE UM CAMPO OPCIONAL ESPECIFICO NÃO FOR INFORMADO
     const endereco = emissao.endereco
     const cidade = emissao.cidade
     const uf = emissao.uf
@@ -614,23 +625,76 @@ exports.emissao = async (emissao) => {
      * endereco, cidade, uf e telefone do pagador
      */
     if (!codigoPagador) {
-      if (endereco) {
-        body['endereco'] = endereco
+      if (!endereco) {
+        const retorno = {
+          status: 400,
+          statusText: 'Bad Request',
+          data: {
+            codigo: 'CREATE16',
+            mensagem:
+              'O endereço do pagador é obrigatório quando o código do pagador não for informado!',
+            parametro: 'endereco',
+          },
+        }
+
+        return retorno
       }
 
-      if (cidade) {
-        body['cidade'] = cidade
+      if (!cidade) {
+        const retorno = {
+          status: 400,
+          statusText: 'Bad Request',
+          data: {
+            codigo: 'CREATE17',
+            mensagem:
+              'A cidade do pagador é obrigatória quando o código do pagador não for informado!',
+            parametro: 'cidade',
+          },
+        }
+
+        return retorno
       }
 
-      if (uf) {
-        body['uf'] = uf
+      if (!uf) {
+        const retorno = {
+          status: 400,
+          statusText: 'Bad Request',
+          data: {
+            codigo: 'CREATE18',
+            mensagem:
+              'O estado do pagador é obrigatório quando o código do pagador não for informado!',
+            parametro: 'uf',
+          },
+        }
+
+        return retorno
       }
 
-      if (telefone) {
-        body['telefone'] = telefone
+      if (!telefone) {
+        const retorno = {
+          status: 400,
+          statusText: 'Bad Request',
+          data: {
+            codigo: 'CREATE19',
+            mensagem:
+              'O telefone do pagador é obrigatório quando o código do pagador não for informado!',
+            parametro: 'telefone',
+          },
+        }
+
+        return retorno
       }
+
+      body['endereco'] = endereco
+      body['cidade'] = cidade
+      body['uf'] = uf
+      body['telefone'] = telefone
     }
 
+    /**
+     * Se o valorDesconto for informado, é necessário passar a dataDesconto,
+     * ou se a dataDesconto for informada, é necessário passar o valorDesconto
+     */
     if (valorDesconto1 && dataDesconto1) {
       body['valorDesconto1'] = valorDesconto1
       body['dataDesconto1'] = dataDesconto1

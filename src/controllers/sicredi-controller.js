@@ -7,7 +7,7 @@ exports.health = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
@@ -97,7 +97,7 @@ exports.consulta = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
@@ -106,8 +106,19 @@ exports.consulta = async (req, res, next) => {
 
 exports.impressao = async (req, res, next) => {
   try {
-    const { query } = req
-    console.log(query)
+    const { token } = req.headers
+
+    const usuario = await repository.getByChaveTransacao(token)
+
+    if (!usuario) {
+      const response = {
+        codigo: 'E0033',
+        mensagem: 'Chave Transacao inválida para este beneficiario.',
+        parametro: 'Token',
+      }
+      res.status(400).send(response)
+      return next(response)
+    }
 
     const retorno = {
       menssagem: 'Processado com sucesso.',
@@ -119,7 +130,7 @@ exports.impressao = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
@@ -149,7 +160,7 @@ exports.autenticacao = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
@@ -158,9 +169,19 @@ exports.autenticacao = async (req, res, next) => {
 
 exports.comandoInstrucao = async (req, res, next) => {
   try {
-    const { body } = req
+    const { token } = req.headers
 
-    console.log(body)
+    const usuario = await repository.getByChaveTransacao(token)
+
+    if (!usuario) {
+      const response = {
+        codigo: 'E0033',
+        mensagem: 'Chave Transacao inválida para este beneficiario.',
+        parametro: 'Token',
+      }
+      res.status(400).send(response)
+      return next(response)
+    }
 
     const retorno = {
       codigo: 'E0029',
@@ -173,7 +194,7 @@ exports.comandoInstrucao = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
@@ -182,9 +203,19 @@ exports.comandoInstrucao = async (req, res, next) => {
 
 exports.emissao = async (req, res, next) => {
   try {
-    const { body } = req
+    const { token } = req.headers
 
-    console.log(body)
+    const usuario = await repository.getByChaveTransacao(token)
+
+    if (!usuario) {
+      const response = {
+        codigo: 'E0033',
+        mensagem: 'Chave Transacao inválida para este beneficiario.',
+        parametro: 'Token',
+      }
+      res.status(400).send(response)
+      return next(response)
+    }
 
     const retorno = {
       linhaDigitavel: '74891118100010510116608680621045677550000010099',
@@ -221,7 +252,7 @@ exports.emissao = async (req, res, next) => {
   } catch (erro) {
     const response = {
       message: 'Falha ao processar sua requisição.',
-      erro,
+      Error: erro.message,
     }
     res.status(500).send(response)
     return next(erro)
